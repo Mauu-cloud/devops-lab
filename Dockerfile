@@ -10,7 +10,7 @@ FROM python:3.12-slim
 RUN useradd --create-home --uid 10001 appuser
 WORKDIR /app
 COPY --from=builder /install /usr/local
-COPY app/main.py .
+COPY --chmod=0444 app/main.py .
 USER 10001
 EXPOSE 8080
 ENV APP_VERSION=dev
