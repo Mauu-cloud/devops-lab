@@ -1,0 +1,9 @@
+.git
+.github
+terraform
+k8s
+gitops
+referencias
+**/__pycache__
+**/.terraform
+*.md

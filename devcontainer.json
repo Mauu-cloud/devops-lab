@@ -1,0 +1,19 @@
+{
+  "name": "devops-lab",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "hostRequirements": { "cpus": 4 },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/terraform:1": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": { "minikube": "none" },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12" }
+  },
+  "postCreateCommand": "curl -sSLo /tmp/kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64 && sudo install /tmp/kind /usr/local/bin/kind && curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin",
+  "forwardPorts": [8080, 8081, 8082, 9090, 8443],
+  "customizations": {
+    "vscode": {
+      "extensions": ["hashicorp.terraform", "ms-kubernetes-tools.vscode-kubernetes-tools", "redhat.vscode-yaml"]
+    }
+  }
+}
