@@ -1,0 +1,65 @@
+# PIPELINE PRINCIPAL: consume los templates reutilizables
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Por defecto el GITHUB_TOKEN solo puede leer. Cada job pide más si lo necesita.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: pytest -q
+
+  # DevSecOps: detectar secretos (claves, tokens) subidos por error al repo
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # DevSecOps: SAST = análisis estático del código fuente
+  sast:
+    runs-on: ubuntu-latest
+    container: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep scan --config p/python --error app/
+
+  docker:
+    needs: [test, secrets-scan, sast]
+    uses: ./.github/workflows/_template-docker-build.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      image-name: devops-lab
+      push: ${{ github.event_name == 'push' }}   # en PR solo build+scan, en main también push
+
+  # El mismo template reutilizado para dos carpetas distintas
+  terraform-local:
+    uses: ./.github/workflows/_template-terraform.yml
+    with:
+      working-directory: terraform/local-docker
+
+  terraform-aws:
+    uses: ./.github/workflows/_template-terraform.yml
+    with:
+      working-directory: terraform/aws-oidc

@@ -1,0 +1,64 @@
+# TEMPLATE REUTILIZABLE (reusable workflow)
+# Otros repos/equipos lo llaman con:  uses: ORG/REPO/.github/workflows/_template-docker-build.yml@main
+# Hace: build de imagen -> escaneo de vulnerabilidades (Trivy) -> push a GHCR (opcional)
+name: template-docker-build
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: "Nombre de la imagen (sin registry ni tag)"
+        type: string
+        required: true
+      context:
+        type: string
+        default: "."
+      dockerfile:
+        type: string
+        default: "Dockerfile"
+      push:
+        description: "Subir la imagen al registry"
+        type: boolean
+        default: false
+      trivy-severity:
+        description: "Severidades que hacen fallar el pipeline"
+        type: string
+        default: "CRITICAL,HIGH"
+    outputs:
+      image:
+        description: "Imagen completa con tag"
+        value: ${{ jobs.build.outputs.image }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Mínimo privilegio: solo lo que este job necesita
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Calcular nombre y tag (tag = SHA corto del commit, trazable)
+        id: meta
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${{ inputs.image-name }}:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: docker build -f "${{ inputs.dockerfile }}" -t "${{ steps.meta.outputs.image }}" "${{ inputs.context }}"
+
+      # En producción fija la versión o el digest de la imagen de Trivy (supply chain)
+      - name: Escaneo de vulnerabilidades con Trivy
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest \
+            image --severity "${{ inputs.trivy-severity }}" --ignore-unfixed --exit-code 1 \
+            "${{ steps.meta.outputs.image }}"
+
+      - name: Login a GHCR (usa el token efímero del job, sin secretos guardados)
+        if: inputs.push
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Push
+        if: inputs.push
+        run: docker push "${{ steps.meta.outputs.image }}"

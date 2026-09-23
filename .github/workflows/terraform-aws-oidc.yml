@@ -1,0 +1,25 @@
+# OPCIONAL (requiere cuenta AWS y haber aplicado terraform/aws-oidc)
+# Muestra cómo un pipeline se autentica en AWS SIN access keys guardadas: OIDC
+name: terraform-aws-plan
+
+on:
+  workflow_dispatch:   # se ejecuta manualmente desde la pestaña Actions
+
+permissions:
+  contents: read
+  id-token: write      # permite al job pedir un token OIDC firmado por GitHub
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Autenticar en AWS con OIDC (asume un rol IAM, credenciales temporales)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}   # variable del repo, NO es un secreto
+          aws-region: us-east-1
+
+      - name: ¿Quién soy?
+        run: aws sts get-caller-identity

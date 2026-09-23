@@ -1,0 +1,24 @@
+# Equivalente GitLab del ci.yml de GitHub
+include:
+  # Template desde otro proyecto (lo normal en una empresa)
+  - project: plataforma/ci-templates
+    ref: main
+    file: templates/docker-build.yml
+  # Templates oficiales de seguridad de GitLab (SAST y detección de secretos)
+  - template: Jobs/SAST.gitlab-ci.yml
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
+
+stages: [test, build]
+
+test:
+  stage: test
+  image: python:3.12
+  script:
+    - pip install -r app/requirements.txt -r app/requirements-dev.txt
+    - cd app && pytest -q
+
+build:
+  stage: build
+  extends: .docker-build          # hereda todo del template
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

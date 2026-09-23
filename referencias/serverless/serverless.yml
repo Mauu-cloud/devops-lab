@@ -1,0 +1,25 @@
+# Serverless Framework: define funciones Lambda + su API. Por debajo genera CloudFormation.
+# Deploy: npx serverless deploy --stage dev
+service: devops-lab-api
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  # Mínimo privilegio: la función solo puede leer este bucket
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: [s3:GetObject]
+          Resource: arn:aws:s3:::mi-bucket-unico/*
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - httpApi:
+          path: /hello
+          method: get

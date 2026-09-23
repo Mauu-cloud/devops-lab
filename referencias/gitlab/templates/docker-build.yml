@@ -1,0 +1,14 @@
+# Template compartido: vive en un repo central (ej: plataforma/ci-templates)
+# Jobs que empiezan con "." son ocultos: solo existen para ser extendidos
+.docker-build:
+  image: docker:27
+  services:
+    - docker:27-dind
+  variables:
+    IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker build -t $IMAGE .
+    - docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --exit-code 1 --severity CRITICAL,HIGH $IMAGE
+    - docker push $IMAGE

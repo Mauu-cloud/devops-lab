@@ -1,0 +1,4 @@
+# Quién debe aprobar cambios en cada parte del repo (se usa junto a branch protection)
+*                     @Mauu-cloud
+/.github/workflows/   @Mauu-cloud
+/terraform/           @Mauu-cloud

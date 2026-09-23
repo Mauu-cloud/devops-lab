@@ -1,0 +1,43 @@
+# TEMPLATE REUTILIZABLE para cualquier carpeta de Terraform
+# Hace: fmt -> init -> validate -> escaneo de seguridad IaC (Checkov)
+name: template-terraform
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        type: string
+        required: true
+      terraform-version:
+        type: string
+        default: "1.9.8"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform-version }}
+
+      - name: Formato
+        run: terraform fmt -check -recursive
+
+      - name: Init (sin backend, solo para validar)
+        run: terraform init -backend=false
+
+      - name: Validate
+        run: terraform validate
+
+      - name: Checkov (malas prácticas / seguridad en IaC)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: ${{ inputs.working-directory }}
+          soft_fail: true   # en el lab solo reporta; en un equipo real lo pondrías en false

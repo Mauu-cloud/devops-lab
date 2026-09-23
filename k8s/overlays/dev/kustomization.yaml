@@ -1,0 +1,25 @@
+# OVERLAY: reutiliza la base y solo cambia lo propio del entorno (patrón "template" para K8s)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: dev
+resources:
+  - ../../base
+  - namespace.yaml
+images:
+  - name: devops-lab
+    newTag: local
+patches:
+  - target:
+      kind: Deployment
+      name: devops-lab
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+  - target:
+      kind: ConfigMap
+      name: devops-lab-config
+    patch: |-
+      - op: replace
+        path: /data/APP_VERSION
+        value: "dev-gitops"

@@ -1,0 +1,26 @@
+# Template de STEPS en Azure DevOps (parámetros tipados)
+parameters:
+  - name: imageName
+    type: string
+  - name: serviceConnection   # conexión al registry, gestionada en Project Settings
+    type: string
+
+steps:
+  - task: Docker@2
+    displayName: Build
+    inputs:
+      command: build
+      repository: ${{ parameters.imageName }}
+      containerRegistry: ${{ parameters.serviceConnection }}
+      tags: $(Build.SourceVersion)
+  - script: |
+      docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image \
+        --exit-code 1 --severity CRITICAL,HIGH ${{ parameters.imageName }}:$(Build.SourceVersion)
+    displayName: Trivy scan
+  - task: Docker@2
+    displayName: Push
+    inputs:
+      command: push
+      repository: ${{ parameters.imageName }}
+      containerRegistry: ${{ parameters.serviceConnection }}
+      tags: $(Build.SourceVersion)

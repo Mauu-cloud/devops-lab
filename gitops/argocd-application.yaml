@@ -1,0 +1,22 @@
+# GITOPS: ArgoCD (dentro del cluster) mira este repo y aplica lo que hay en k8s/overlays/dev.
+# Modelo PULL: el pipeline NO hace kubectl apply; Git es la única fuente de verdad.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devops-lab-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Mauu-cloud/devops-lab.git
+    targetRevision: main
+    path: k8s/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true      # borra del cluster lo que se borró de Git
+      selfHeal: true   # si alguien cambia algo a mano en el cluster, lo revierte
+    syncOptions:
+      - CreateNamespace=true
